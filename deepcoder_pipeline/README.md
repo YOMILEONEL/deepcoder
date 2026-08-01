@@ -33,12 +33,14 @@ Beispiel für einen zweiten Lauf mit anderem Budget:
 GAS=1000 ./run_all.sh
 ```
 
-Jeder Lauf schreibt seine Ergebnisse nach `output/results_T<T>_gas<GAS>_*`
-und ein Log pro Schritt nach `output/logs/`. Das Notebook ist fest auf
-`T=2`/`gas=1000` verdrahtet (siehe Abschnitt 5) und wird nur bei diesen
-Standardwerten mit ausgeführt; bei anderen `T`/`GAS`-Kombinationen wird
-dieser letzte Schritt übersprungen (Metriken via `compute_metrics.py`
-laufen trotzdem immer).
+Jeder Lauf (jede `T`/`GAS`/`EPOCHS`/`SEED`-Kombination) bekommt einen
+eigenen Ordner `output/runs/T<T>_gas<GAS>_epochs<EPOCHS>_seed<SEED>/` mit
+einer Datei pro Pipeline-Schritt und einem `logs/`-Unterordner darin —
+nichts wird zwischen unterschiedlichen Konfigurationen oder Schritten
+überschrieben. Das Notebook liest `T`/`GAS`/`EPOCHS`/`SEED` aus denselben
+Umgebungsvariablen (Default wie im Notebook selbst: `T=2`, `GAS=1000`,
+`EPOCHS=10`, `SEED=42`) und schreibt in denselben Run-Ordner wie
+`run_all.sh`.
 
 ### Reproduzierbarkeit
 
@@ -62,20 +64,22 @@ deepcoder_pipeline/
 │   ├── train-nn.py                       Training des neuronalen Prädiktors
 │   ├── export_results_to_csv.py          Konvertiert .h5-Ergebnisse nach CSV
 │   └── compute_metrics.py                CLI-Variante der Notebook-Metriken (+ partial_correctness)
-├── output/                                Alle erzeugten Artefakte
-│   ├── model.h5 / model_T2.h5             trainierter Prädiktor (T=2_train, 10 Epochen)
-│   ├── results_T2_gas1000_no_predictor.*     DFS ohne Training, gas=1000
-│   ├── results_T2_gas1000_with_predictor.*   DFS mit Training,  gas=1000
-│   ├── results_T2_gas10000_no_predictor.*    DFS ohne Training, gas=10000
-│   ├── results_T2_gas10000_with_predictor.*  DFS mit Training,  gas=10000
-│   ├── results_T2_gas10000_no_predictor_with_metrics.csv     Notebook-Output (siehe unten)
-│   ├── results_T2_gas10000_*_compute_metrics.csv              compute_metrics.py-Output (siehe unten)
-│   └── logs/                              ein Log pro run_all.sh-Schritt
+├── output/
+│   └── runs/                              ein Ordner pro T/GAS/EPOCHS/SEED-Kombination
+│       └── T2_gas10000_epochs10_seed42/
+│           ├── model.h5                       trainierter Prädiktor
+│           ├── solve_no_predictor.h5/.csv     DFS ohne Training
+│           ├── solve_with_predictor.h5/.csv   DFS mit Training
+│           ├── metrics_no_predictor.csv       compute_metrics.py-Output (siehe unten)
+│           ├── metrics_with_predictor.csv     compute_metrics.py-Output (siehe unten)
+│           ├── metric_comparison.png          Notebook-Diagramm
+│           ├── pipeline_summary.txt           Notebook-Zusammenfassung
+│           └── logs/                          ein Log pro Pipeline-Schritt
 ├── deepcoder_metric_analysis.ipynb        Metrik-Auswertung + Diagramme
 └── README.md                              diese Datei
 ```
 
-Jedes `results_*` Ergebnis existiert als `.h5` (Rohausgabe von
+Jedes `solve_*`-Ergebnis existiert als `.h5` (Rohausgabe von
 `solve-problems.py`, inkl. `reference`/`solution`/`nb_steps`/`wall_ms`) und
 als `.csv` (nach `solved`-Spalte aufbereitet, für das Notebook).
 
@@ -115,11 +119,15 @@ wieder wie erwartet.
 ## Pipeline-Schritte
 
 Alle Befehle aus `deepcoder_pipeline/` heraus, mit
-`PYTHONPATH=C:\BA\deepcoder` gesetzt (damit `import deepcoder` auflöst):
+`PYTHONPATH=C:\BA\deepcoder` gesetzt (damit `import deepcoder` auflöst).
+`RUN` steht für den Run-Ordner der jeweiligen Hyperparameter-Kombination
+(`output\runs\T2_gas10000_epochs10_seed42`):
 
 ```powershell
 cd C:\BA\deepcoder\deepcoder_pipeline
 $env:PYTHONPATH = "C:\BA\deepcoder"
+$RUN = "output\runs\T2_gas10000_epochs10_seed42"
+New-Item -ItemType Directory -Force "$RUN\logs" | Out-Null
 ```
 
 ### 1. DFS-Solver ohne Prädiktor
@@ -127,14 +135,14 @@ $env:PYTHONPATH = "C:\BA\deepcoder"
 ```powershell
 ..\.venv\Scripts\python.exe scripts\solve-problems.py `
     ..\dataset\T=2_test.json --T 2 --mode dfs --gas 10000 `
-    --outfile output\results_T2_gas10000_no_predictor.h5
+    --outfile "$RUN\solve_no_predictor.h5"
 ```
 
 ### 2. Prädiktor trainieren
 
 ```powershell
 ..\.venv\Scripts\python.exe scripts\train-nn.py `
-    --in ..\dataset\T=2_train.json --out output\model.h5 --epochs 10
+    --in ..\dataset\T=2_train.json --out "$RUN\model.h5" --epochs 10 --seed 42
 ```
 
 ### 3. DFS-Solver mit Prädiktor
@@ -142,19 +150,19 @@ $env:PYTHONPATH = "C:\BA\deepcoder"
 ```powershell
 ..\.venv\Scripts\python.exe scripts\solve-problems.py `
     ..\dataset\T=2_test.json --T 2 --mode dfs --gas 10000 `
-    --predictor output\model.h5 `
-    --outfile output\results_T2_gas10000_with_predictor.h5
+    --predictor "$RUN\model.h5" `
+    --outfile "$RUN\solve_with_predictor.h5"
 ```
 
 ### 4. Ergebnisse nach CSV exportieren
 
 ```powershell
 ..\.venv\Scripts\python.exe scripts\export_results_to_csv.py `
-    --infile output\results_T2_gas10000_no_predictor.h5 `
-    --outfile output\results_T2_gas10000_no_predictor.csv
+    --infile "$RUN\solve_no_predictor.h5" `
+    --outfile "$RUN\solve_no_predictor.csv"
 ```
 
-(analog für die anderen drei `.h5`-Dateien)
+(analog für die andere `.h5`-Datei aus Schritt 3)
 
 ### 5. Notebook: die Pipeline Schritt für Schritt (wie bei DreamCoder)
 
@@ -163,18 +171,21 @@ $env:PYTHONPATH = "C:\BA\deepcoder"
 — kein reines Analyse-Notebook mehr, sondern orchestriert die komplette
 Pipeline selbst, eine Zelle pro Schritt:
 
-1. **Konfiguration** (`T`, `GAS`, `EPOCHS` am Anfang, dort änderbar)
+1. **Konfiguration** (`T`, `GAS`, `EPOCHS`, `SEED` am Anfang — liest sie aus
+   Umgebungsvariablen, falls gesetzt, sonst Defaults `2`/`1000`/`10`/`42`;
+   baut daraus denselben Run-Ordner wie `run_all.sh`:
+   `output/runs/T<T>_gas<GAS>_epochs<EPOCHS>_seed<SEED>/`)
 2. `run_step()`-Hilfsfunktion, die jedes `scripts/*.py` als Subprozess
-   startet, den Output live ins Notebook streamt und nach `output/logs/`
+   startet, den Output live ins Notebook streamt und nach `RUN_DIR/logs/`
    schreibt (bricht mit Fehler ab, falls ein Schritt fehlschlägt)
 3. Schritt 1 – DFS ohne Prädiktor, Schritt 2 – Training, Schritt 3 – DFS mit
    Prädiktor, Schritt 4 – CSV-Export, Schritt 5 – `compute_metrics.py` für
    beide Konfigurationen
 4. Vergleichstabelle + gruppiertes Balkendiagramm (ohne vs. mit Training,
    mit Wertbeschriftung über jedem Balken) — gespeichert als
-   `output/metric_comparison_T<T>_gas<GAS>.png`
+   `RUN_DIR/metric_comparison.png`
 5. Finale Textzusammenfassung, gespeichert als
-   `output/pipeline_summary_T<T>_gas<GAS>.txt`
+   `RUN_DIR/pipeline_summary.txt`
 
 Ausführen:
 
@@ -183,16 +194,17 @@ Ausführen:
     deepcoder_metric_analysis.ipynb
 ```
 
-Anderes Budget testen: `GAS` (oder `T`/`EPOCHS`) in der Konfigurationszelle
-ändern und erneut ausführen — jeder Lauf bekommt eigene Dateinamen, nichts
-wird überschrieben.
+Andere Hyperparameter testen: `T`/`GAS`/`EPOCHS`/`SEED` in der
+Konfigurationszelle (oder als Umgebungsvariable vor dem Start) ändern und
+erneut ausführen — jeder Lauf bekommt einen eigenen Run-Ordner, nichts wird
+überschrieben.
 
 ### 6. Metriken per Skript (von Schritt 5 im Notebook aufgerufen, auch einzeln nutzbar)
 
 ```powershell
 ..\.venv\Scripts\python.exe scripts\compute_metrics.py `
-    --infile output\results_T2_gas10000_no_predictor.csv `
-    --outfile output\results_T2_gas10000_no_predictor_compute_metrics.csv
+    --infile "$RUN\solve_no_predictor.csv" `
+    --outfile "$RUN\metrics_no_predictor.csv"
 ```
 
 Berechnet dieselben vier Ähnlichkeitsmetriken wie das Notebook, aber mit

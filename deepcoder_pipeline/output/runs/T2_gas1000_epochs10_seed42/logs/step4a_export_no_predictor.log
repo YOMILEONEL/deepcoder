@@ -1,0 +1,14 @@
+Saved 100 rows to c:\BA\deepcoder\deepcoder_pipeline\output\runs\T2_gas1000_epochs10_seed42\solve_no_predictor.csv
+                        reference  ...    wall_ms
+0        LIST|COUNT,<0,0|TAKE,1,0  ...  70.204735
+1  LIST|FILTER,<0,0|ZIPWITH,*,0,1  ...  69.620371
+2  LIST|FILTER,<0,0|ZIPWITH,*,1,1  ...  79.858065
+3      LIST|FILTER,>0,0|MAP,*-1,1  ...  33.182859
+4         LIST|FILTER,>0,0|TAIL,1  ...  65.284967
+5     LIST|FILTER,EVEN,0|MAP,+1,1  ...  22.429705
+6    LIST|FILTER,ODD,0|COUNT,>0,1  ...  55.071354
+7      LIST|FILTER,ODD,0|MAP,*4,1  ...  67.448854
+8    LIST|INT|MAP,/3,0|ACCESS,1,2  ...   0.000000
+9    LIST|INT|SCAN1L,-,0|TAKE,1,2  ...  37.448168
+
+[10 rows x 5 columns]

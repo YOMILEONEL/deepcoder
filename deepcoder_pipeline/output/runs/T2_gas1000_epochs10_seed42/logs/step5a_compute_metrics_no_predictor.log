@@ -1,4 +1,4 @@
-Saved 100 rows to C:\BA\deepcoder\deepcoder_pipeline\output\results_T2_gas1000_no_predictor_compute_metrics.csv
+Saved 100 rows to c:\BA\deepcoder\deepcoder_pipeline\output\runs\T2_gas1000_epochs10_seed42\metrics_no_predictor.csv
 
 Summary:
          accuracy  ...  partial_correctness
