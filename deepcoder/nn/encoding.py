@@ -9,7 +9,7 @@ L = 20  # length of input
 def encode(value, L=L):
     if value.type == LIST:
         typ = [0, 1]
-        vals = value.val + [constants.NULL] * (L - len(value.val))
+        vals = list(value.val) + [constants.NULL] * (L - len(value.val))
     elif value.type == INT:
         typ = [1, 0]
         vals = [value.val] + [constants.NULL] * (L - 1)

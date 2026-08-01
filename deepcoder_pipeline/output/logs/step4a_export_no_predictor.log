@@ -1,0 +1,14 @@
+Saved 100 rows to C:\BA\deepcoder\deepcoder_pipeline\output\results_T2_gas1000_no_predictor.csv
+                        reference  ...    wall_ms
+0        LIST|COUNT,<0,0|TAKE,1,0  ...  32.913208
+1  LIST|FILTER,<0,0|ZIPWITH,*,0,1  ...  31.915665
+2  LIST|FILTER,<0,0|ZIPWITH,*,1,1  ...  25.171518
+3      LIST|FILTER,>0,0|MAP,*-1,1  ...  10.005713
+4         LIST|FILTER,>0,0|TAIL,1  ...  18.744707
+5     LIST|FILTER,EVEN,0|MAP,+1,1  ...   7.740974
+6    LIST|FILTER,ODD,0|COUNT,>0,1  ...  21.321058
+7      LIST|FILTER,ODD,0|MAP,*4,1  ...  19.320488
+8    LIST|INT|MAP,/3,0|ACCESS,1,2  ...   0.000000
+9    LIST|INT|SCAN1L,-,0|TAKE,1,2  ...   9.318590
+
+[10 rows x 5 columns]

@@ -1,0 +1,14 @@
+DeepCoder Pipeline Summary
+
+T=2  gas=10000  epochs=10
+
+Ohne Training: 93/100 gelöst (93.00%), mean nb_steps=2397.6
+Mit Training:  100/100 gelöst (100.00%), mean nb_steps=1090.5
+
+Exakte Programmübereinstimmung (Token-für-Token):
+  ohne Training: 31.00%
+  mit Training:  42.00%
+
+Partial Correctness (Mittel aus den 4 Ähnlichkeitsmetriken):
+  ohne Training: 0.6256
+  mit Training:  0.7225

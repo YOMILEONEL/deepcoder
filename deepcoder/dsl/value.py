@@ -3,11 +3,19 @@ from deepcoder.dsl.types import INT, LIST, NULLTYPE
 
 class Value(object):
     def __init__(self, val, typ):
+        if typ == LIST and val is not None:
+            # Normalize to tuple so list-typed Values compare equal
+            # regardless of whether the underlying computation produced a
+            # list (e.g. json-decoded examples, SORT) or a tuple (e.g. MAP,
+            # FILTER, ZIPWITH, SCAN1L). Without this, otherwise-identical
+            # values compare unequal (`[1,2] != (1,2)`), which silently
+            # makes is_solution() reject correct programs.
+            val = tuple(val)
         self._val = val
         self._typ = typ
         self._name = str(self._val)
         if self._typ == LIST:
-            self._hash = hash(tuple(val))
+            self._hash = hash(self._val)
         else:
             self._hash = hash(val)
 

@@ -7,8 +7,7 @@ from deepcoder.dsl import impl
 from deepcoder.dsl import constants
 from deepcoder.nn import encoding
 from deepcoder import util
-from keras.layers import Input, Dense, Embedding, Flatten, InputLayer
-from keras.layers.merge import Average, Concatenate
+from keras.layers import Input, Dense, Embedding, Flatten, InputLayer, Average, Concatenate
 from keras.models import Model
 
 K = 256 # number of hidden units
@@ -87,10 +86,16 @@ def get_model(I, E, M=5):
     l2_layers = [l2(x) for x in l1_layers]
     l3_layers = [l3(x) for x in l2_layers]
     ave = Average()(l3_layers)
-    pred = Dense(len(impl.FUNCTIONS), activation='softmax')(ave)
+    # attribute targets are multi-hot (a program can use several functions
+    # at once), so this is multi-label classification: independent
+    # per-function probabilities (sigmoid) trained with binary
+    # crossentropy. softmax + categorical_crossentropy assumes mutually
+    # exclusive single-label targets and can't minimize a multi-hot target,
+    # which was causing training loss to diverge instead of decrease.
+    pred = Dense(len(impl.FUNCTIONS), activation='sigmoid')(ave)
 
     model = Model(inputs=input_layers, outputs=pred)
-    model.compile('adam', 'categorical_crossentropy')
+    model.compile('adam', 'binary_crossentropy')
     return model
 
 def get_XY(problems, max_nb_inputs):

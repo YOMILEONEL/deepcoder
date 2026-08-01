@@ -1,0 +1,20 @@
+Saved 100 rows to C:\BA\deepcoder\deepcoder_pipeline\output\results_T2_gas1000_no_predictor_compute_metrics.csv
+
+Summary:
+         accuracy  ...  partial_correctness
+count  100.000000  ...           100.000000
+mean     0.110000  ...             0.294792
+std      0.314466  ...             0.334054
+min      0.000000  ...             0.000000
+25%      0.000000  ...             0.000000
+50%      0.000000  ...             0.333333
+75%      0.000000  ...             0.500000
+max      1.000000  ...             1.000000
+
+[8 rows x 6 columns]
+
+Solved count:
+solved
+True     53
+False    47
+Name: count, dtype: int64
