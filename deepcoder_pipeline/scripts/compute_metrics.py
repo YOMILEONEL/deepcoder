@@ -160,8 +160,31 @@ def partial_correctness(pos_score, op_score, order_score, edit_score):
     return 0.25 * pos_score + 0.25 * op_score + 0.25 * order_score + 0.25 * edit_score
 
 
+def is_present(value):
+    return pd.notna(value) and str(value).strip().lower() not in {"", "none", "nan"}
+
+
+def best_effort_program(row, has_partial_column):
+    """
+    The program to score a task's structural closeness with: the actual
+    solution if solved, otherwise the best partial-match candidate the
+    search kept (see deepcoder/search.py) if one exists, otherwise nothing.
+
+    Without this, unsolved tasks always score 0 on every structural metric
+    purely because there is no program at all to compare - not because the
+    search didn't get close. best_partial_solution lets those tasks show
+    actual partial credit instead of a uniform 0.
+    """
+    if row["solved"]:
+        return row["solution"]
+    if has_partial_column and is_present(row.get("best_partial_solution")):
+        return row["best_partial_solution"]
+    return None
+
+
 def main():
     df = pd.read_csv(INPUT_FILE)
+    has_partial_column = "best_partial_solution" in df.columns
 
     results = []
 
@@ -182,6 +205,19 @@ def main():
             edit_score=edit_score
         )
 
+        best_effort = best_effort_program(row, has_partial_column)
+        best_effort_tokens = tokenize_program(best_effort)
+        be_op_score = program_operation_score(reference_tokens, best_effort_tokens)
+        be_pos_score = program_position_score(reference_tokens, best_effort_tokens)
+        be_order_score = program_order_score(reference_tokens, best_effort_tokens)
+        be_edit_score = program_edit_score(reference_tokens, best_effort_tokens)
+        be_partial = partial_correctness(
+            pos_score=be_pos_score,
+            op_score=be_op_score,
+            order_score=be_order_score,
+            edit_score=be_edit_score,
+        )
+
         results.append({
             "reference": row["reference"],
             "solution": row["solution"],
@@ -192,6 +228,12 @@ def main():
             "program_order_score": order_score,
             "program_edit_score": edit_score,
             "partial_correctness": partial,
+            "best_effort_program": best_effort,
+            "best_effort_operation_score": be_op_score,
+            "best_effort_position_score": be_pos_score,
+            "best_effort_order_score": be_order_score,
+            "best_effort_edit_score": be_edit_score,
+            "best_effort_partial_correctness": be_partial,
             "nb_steps": row["nb_steps"],
             "wall_ms": row["wall_ms"],
         })
@@ -208,12 +250,21 @@ def main():
         "program_position_score",
         "program_order_score",
         "program_edit_score",
-        "partial_correctness"
+        "partial_correctness",
+        "best_effort_partial_correctness",
     ]].describe())
 
     print()
     print("Solved count:")
     print(out_df["solved"].value_counts())
+
+    unsolved = out_df[~out_df["solved"]]
+    if len(unsolved):
+        print()
+        print(f"Unsolved tasks: {len(unsolved)}")
+        print(f"  with a best-partial candidate: {int(unsolved['best_effort_program'].notna().sum())}")
+        print(f"  mean partial_correctness (old, always 0): {unsolved['partial_correctness'].mean():.4f}")
+        print(f"  mean best_effort_partial_correctness (new): {unsolved['best_effort_partial_correctness'].mean():.4f}")
 
 
 if __name__ == "__main__":

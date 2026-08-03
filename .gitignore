@@ -7,3 +7,9 @@
 deepcoder.egg-info
 .venv
 dataset
+
+# LaTeX build byproducts - keep only the .tex source and .pdf output.
+deepcoder_pipeline/new_solver/*.aux
+deepcoder_pipeline/new_solver/*.log
+deepcoder_pipeline/new_solver/*.out
+deepcoder_pipeline/new_solver/*.synctex.gz

@@ -37,6 +37,17 @@ def is_solution(program, examples):
             return False
     return True
 
+def count_matches(program, examples):
+    """Counts how many examples program's output matches, evaluated
+    independently per example (unlike is_solution, doesn't short-circuit).
+
+    Only meaningful to call once is_solution has already run to completion
+    without raising - a program whose evaluation raises NullInputError or
+    OutputOutOfRangeError is discarded entirely by dfshelper before this
+    would be reached, so no exception handling is needed here.
+    """
+    return sum(1 for inputs, output in examples if program(*inputs) == output)
+
 def has_null(program, examples):
     for inputs, _ in examples:
         if program(*inputs) == NULLVALUE:
@@ -52,11 +63,15 @@ def dfs(examples, T, ctx, gas=np.inf):
         gas (int): limit on number of node expansions. default to np.inf (unlimited)
 
     Returns:
-        tuple of solution program, number of steps
+        tuple of (solution program, number of steps, best partial-match
+        program seen (or None if none matched any example), number of
+        examples that best partial-match program satisfied)
     """
     ns = { 'nb_steps': 0,
            'solution': None,
-           'gas' : gas }
+           'gas' : gas,
+           'best_partial': None,
+           'best_partial_count': 0 }
 
     # init
     input_types = [x.type for x in examples[0][0]]
@@ -72,6 +87,10 @@ def dfs(examples, T, ctx, gas=np.inf):
             if is_solution(p_base, examples):
                 ns['solution'] = p_base
                 return True
+            match_count = count_matches(p_base, examples)
+            if match_count > ns['best_partial_count']:
+                ns['best_partial'] = p_base
+                ns['best_partial_count'] = match_count
         except (NullInputError, OutputOutOfRangeError):
             # throw out programs that have null inputs or any out of range output
             # null outputs ok if unused
@@ -116,7 +135,7 @@ def dfs(examples, T, ctx, gas=np.inf):
                     return True
 
     dfshelper(p_base, 0)
-    return ns['solution'], ns['nb_steps']
+    return ns['solution'], ns['nb_steps'], ns['best_partial'], ns['best_partial_count']
 
 def enumerate_helper(input_types, T, ctx, result_queue, stop_queue):
     program_base = Program(input_types, [])
@@ -286,9 +305,14 @@ def generate_contexts(final_ctx):
 def sort_and_add(examples, T, final_ctx, gas=np.inf):
     solution = None
     nb_steps_list = []
+    best_partial = None
+    best_partial_count = 0
     for ctx in generate_contexts(final_ctx):
-        solution, nb_steps = dfs(examples, T, ctx, gas)
+        solution, nb_steps, partial, partial_count = dfs(examples, T, ctx, gas)
         nb_steps_list.append(nb_steps)
+        if partial_count > best_partial_count:
+            best_partial = partial
+            best_partial_count = partial_count
         if solution:
             break
-    return solution, nb_steps_list
+    return solution, nb_steps_list, best_partial, best_partial_count

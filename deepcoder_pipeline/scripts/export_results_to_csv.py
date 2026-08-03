@@ -18,8 +18,16 @@ df["solved"] = df["solution"].notna()
 df["reference"] = df["reference"].astype(str)
 df["solution"] = df["solution"].astype(str)
 
+columns = ["reference", "solution", "solved", "nb_steps", "wall_ms"]
+
+# Older .h5 files predate best-partial-candidate tracking in search.py -
+# keep this script usable against them instead of hard-requiring the columns.
+if "best_partial_solution" in df.columns:
+    df["best_partial_solution"] = df["best_partial_solution"].astype(str)
+    columns += ["best_partial_solution", "best_partial_match_fraction"]
+
 # Select relevant columns
-df = df[["reference", "solution", "solved", "nb_steps", "wall_ms"]]
+df = df[columns]
 
 df.to_csv(output_file, index=False, encoding="utf-8")
 

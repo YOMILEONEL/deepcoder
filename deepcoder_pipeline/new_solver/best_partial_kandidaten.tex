@@ -1,0 +1,315 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[ngerman]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{codebg},
+    frame=single,
+    breaklines=true,
+    columns=fullflexible,
+    xleftmargin=0.3cm,
+    xrightmargin=0.3cm,
+    aboveskip=0.3cm,
+    belowskip=0.3cm
+}
+
+\title{Beste Teillösungen für ungelöste Aufgaben\\ (DeepCoder)}
+\author{Bemerkung zur Bachelorarbeit -- Steve Leonel Yomi Mbiakop}
+\date{\today}
+
+\sloppy
+
+\begin{document}
+\maketitle
+
+\section{Ausgangslage}
+
+Wie in der separaten Bemerkung \emph{``Warum liefern DeepCoder und
+DreamCoder für ungelöste Aufgaben kein Kandidatenprogramm?''} gezeigt,
+speicherte die DeepCoder-Suche (\texttt{deepcoder/search.py}) für eine
+Aufgabe nur dann ein Programm, wenn dieses \textbf{alle} gegebenen
+Beispiele exakt erfüllte. Scheiterte jeder während der Suche geprüfte
+Kandidat an mindestens einem Beispiel, blieb \texttt{solution = None} --
+und alle Strukturmetriken (OperationScore, PositionScore, OrderScore,
+EditScore, PartialCorrectness) waren für diese Aufgabe rechnerisch immer
+$0$, unabhängig davon, wie nah die Suche tatsächlich gekommen war.
+
+Dieses Dokument beschreibt, wie DeepCoder so erweitert wurde, dass der
+\textbf{beste gefundene Teiltreffer} zusätzlich gespeichert und für die
+Metrikberechnung genutzt wird -- ausschließlich für DeepCoder (nicht für
+DreamCoder, siehe Abschnitt \ref{sec:scope}).
+
+\section{Lösung}
+
+\subsection{\texttt{deepcoder/search.py}: Teiltreffer während der Suche verfolgen}
+
+Neue Hilfsfunktion, die zählt, wie viele Beispiele ein Kandidat erfüllt
+(statt wie \texttt{is\_solution} beim ersten Fehlschlag abzubrechen):
+
+\begin{lstlisting}[language=Python]
+def count_matches(program, examples):
+    return sum(1 for inputs, output in examples
+               if program(*inputs) == output)
+\end{lstlisting}
+
+In \texttt{dfs()} wird für jeden Kandidaten, der \emph{nicht} alle
+Beispiele erfüllt, dessen Trefferzahl bestimmt. Übertrifft sie den
+bisher besten Wert, wird der Kandidat gemerkt:
+
+\begin{lstlisting}[language=Python]
+ns = { 'nb_steps': 0,
+       'solution': None,
+       'gas' : gas,
+       'best_partial': None,
+       'best_partial_count': 0 }
+...
+try:
+    if is_solution(p_base, examples):
+        ns['solution'] = p_base
+        return True
+    match_count = count_matches(p_base, examples)
+    if match_count > ns['best_partial_count']:
+        ns['best_partial'] = p_base
+        ns['best_partial_count'] = match_count
+except (NullInputError, OutputOutOfRangeError):
+    return
+...
+return ns['solution'], ns['nb_steps'], ns['best_partial'], ns['best_partial_count']
+\end{lstlisting}
+
+Findet sich nie ein Kandidat, der auch nur ein Beispiel trifft, bleibt
+\texttt{best\_partial} bei \texttt{None} -- die Aufgabe fällt dann exakt
+auf das alte Verhalten zurück (siehe Abschnitt \ref{sec:edgecase}). Der
+alternative Suchmodus \texttt{sort\_and\_add()} wurde analog erweitert
+und vergleicht den besten Teiltreffer über alle geprüften Kontexte hinweg.
+
+\subsection{\texttt{scripts/solve-problems.py}: neue Ausgabespalten}
+
+Für jede Aufgabe werden jetzt zwei zusätzliche Spalten geschrieben,
+befüllt nur wenn die Aufgabe \emph{nicht} gelöst wurde:
+
+\begin{itemize}[nosep]
+    \item \texttt{best\_partial\_solution} -- Programmstring des besten
+    Teiltreffers (oder leer).
+    \item \texttt{best\_partial\_match\_fraction} -- Anteil erfüllter
+    Beispiele (z.\,B. $0.4$ bei 2 von 5 Beispielen).
+\end{itemize}
+
+\subsection{\texttt{scripts/export\_results\_to\_csv.py}: Spalten durchreichen}
+
+Reicht die beiden neuen Spalten unverändert von der \texttt{.h5}- in die
+\texttt{.csv}-Datei durch (rückwärtskompatibel: ältere \texttt{.h5}-Dateien
+ohne diese Spalten funktionieren weiterhin).
+
+\subsection{\texttt{scripts/compute\_metrics.py}: Best-Effort-Metriken}
+
+Neue Funktion, die entscheidet, welches Programm für den strukturellen
+Vergleich herangezogen wird:
+
+\begin{lstlisting}[language=Python]
+def best_effort_program(row, has_partial_column):
+    if row["solved"]:
+        return row["solution"]
+    if has_partial_column and is_present(row.get("best_partial_solution")):
+        return row["best_partial_solution"]
+    return None
+\end{lstlisting}
+
+Auf Basis dieses Programms werden fünf neue Spalten berechnet --
+\texttt{best\_effort\_operation\_score}, \texttt{\_position\_score},
+\texttt{\_order\_score}, \texttt{\_edit\_score} und
+\texttt{\_partial\_correctness} -- mit denselben Metrik-Funktionen, die
+bereits für gelöste Aufgaben verwendet werden. Die bisherigen Spalten
+(\texttt{accuracy}, \texttt{partial\_correctness} usw.) bleiben
+unverändert erhalten; die neuen Spalten kommen zusätzlich hinzu.
+
+\subsection{Notebook: zwei neue Diagramme}
+
+\texttt{deepcoder\_metric\_analysis.ipynb} zeigt jetzt zusätzlich zum
+bestehenden Gesamtvergleich zwei eigene Balkendiagramme:
+\begin{itemize}[nosep]
+    \item \textbf{Nur gelöste Aufgaben} -- Strukturmetriken, ohne vs.
+    mit Training.
+    \item \textbf{Nur ungelöste Aufgaben} -- dieselben Metriken, aber auf
+    Basis von \texttt{best\_effort\_*}, statt pauschal $0$.
+\end{itemize}
+
+\section{Sonderfall: gar kein Kandidat gefunden}
+\label{sec:edgecase}
+
+Manche Aufgaben bleiben auch mit dieser Erweiterung bei $0$: wenn die
+Suche innerhalb des Budgets (\texttt{gas}) \emph{nie} ein Programm
+gefunden hat, das auch nur ein einziges Beispiel erfüllt, bleibt
+\texttt{best\_partial\_solution} leer, \texttt{best\_effort\_program}
+liefert \texttt{None}, und alle \texttt{best\_effort\_*}-Metriken werden
+korrekt zu $0$ (weil \texttt{tokenize\_program(None)} eine leere
+Token-Liste ergibt -- dieselbe Rechnung wie zuvor bei einer leeren
+\texttt{solution}). Kein Fehler, kein Absturz, keine künstliche
+Verzerrung -- nur eine ehrliche Rückkehr zum alten Zustand für genau
+diese Aufgaben.
+
+\section{Validierung}
+
+Testlauf auf \texttt{T=2\_test} (100 Aufgaben, gas\,=\,1000, ohne
+Training):
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+& \textbf{vorher} & \textbf{nachher} \\
+\midrule
+Gelöste Aufgaben & 53/100 & 53/100 (unverändert) \\
+Ungelöste Aufgaben mit Teiltreffer & -- & 25/47 \\
+Ungelöste Aufgaben ganz ohne Kandidat & -- & 22/47 \\
+Ø \texttt{partial\_correctness} (ungelöst) & 0{,}0000 & -- \\
+Ø \texttt{best\_effort\_partial\_correctness} (ungelöst) & -- & 0{,}2556 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Die Lösungsrate (\texttt{solved}) blieb exakt gleich -- die Erweiterung
+verändert nicht, \emph{ob} eine Aufgabe als gelöst gilt, sondern liefert
+für die verbleibenden Fälle zusätzliche, ehrliche Information über die
+strukturelle Nähe der Suche zum Referenzprogramm.
+
+\textbf{Konkretes Beispiel} (Aufgabe \texttt{LIST|COUNT,<0,0|TAKE,1,0},
+ungelöst): der beste gefundene Teiltreffer erfüllt $2$ von $5$ Beispielen
+($40\,\%$) und erhält dadurch einen echten \texttt{best\_effort\_*}-Score
+statt einer pauschalen Null.
+
+\section{Umfang: nur DeepCoder}
+\label{sec:scope}
+
+Diese Erweiterung wurde bewusst nur für DeepCoder umgesetzt. Dieser
+Abschnitt begründet das nicht nur, sondern zeigt auch konkret, was für
+DreamCoder nötig wäre, und warum die Entscheidung dagegen eine bewusste
+Kosten-Nutzen-Abwägung war -- keine Verlegenheitslösung.
+
+\subsection{Warum DreamCoder strukturell anders liegt}
+
+Bei DeepCoder reichte eine reine Python-Änderung, weil die komplette
+Suche in Python läuft (\texttt{deepcoder/search.py}). Bei DreamCoder
+liegt die eigentliche Enumeration dagegen im kompilierten OCaml-Solver.
+Wie in der separaten Bemerkung gezeigt, entscheidet dort
+\texttt{solvers/task.ml} pro Kandidat binär:
+
+\begin{lstlisting}[language=Caml]
+let logLikelihood = tasks.(j).log_likelihood p in
+if is_valid logLikelihood then begin
+  Heap.add hits.(j) {hit_program = ...; hit_likelihood = logLikelihood; ...}
+end
+\end{lstlisting}
+
+Ein Kandidat mit \texttt{logLikelihood = neg\_infinity} (scheitert an
+mindestens einem Beispiel) besteht \texttt{is\_valid} nicht und wird
+\emph{nie} in die Heap aufgenommen, die später als JSON an Python
+zurückgegeben wird (\texttt{solvers/solver.ml},
+\texttt{export\_frontiers}). Der Python-Wrapper
+(\texttt{solveForTask\_ocaml} in \texttt{dreamcoder/enumeration.py})
+bekommt also gar keine Kandidaten mit Teiltreffern zu Gesicht -- sie
+existieren zu keinem Zeitpunkt außerhalb des OCaml-Prozesses.
+
+\subsection{Was die Umsetzung technisch erfordern würde}
+
+Um das DeepCoder-Prinzip (bester Teiltreffer statt Verwerfen) auch für
+DreamCoder umzusetzen, wären mindestens vier zusammenhängende Änderungen
+nötig:
+
+\begin{enumerate}[nosep]
+    \item \textbf{\texttt{solvers/task.ml}, \texttt{supervised\_task}:}
+    Eine zweite, graduelle Bewertungsfunktion ergänzen, die zählt, wie
+    viele Beispiele \texttt{p} erfüllt (analog zu \texttt{count\_matches}
+    in DeepCoder), statt beim ersten Fehlschlag mit \texttt{log 0.0}
+    abzubrechen.
+    \item \textbf{\texttt{solvers/task.ml}, \texttt{enumerate\_for\_tasks}:}
+    Pro Aufgabe einen zweiten, von \texttt{hits} getrennten Merker für
+    den bisher besten Teiltreffer einführen (die \texttt{is\_valid}-Prüfung
+    darf für \texttt{hits} unverändert bleiben, damit sich an gelösten
+    Aufgaben nichts ändert).
+    \item \textbf{\texttt{solvers/solver.ml}, \texttt{export\_frontiers}:}
+    Das JSON-Antwortformat um ein optionales Feld für den besten
+    Teiltreffer je Aufgabe erweitern.
+    \item \textbf{\texttt{dreamcoder/enumeration.py},
+    \texttt{solveForTask\_ocaml}:} Das neue Feld einlesen und (ähnlich wie
+    bei DeepCoder) getrennt von der regulären \texttt{Frontier} als
+    \texttt{best\_partial}-Information an die Auswertungs-Pipeline
+    weiterreichen.
+\end{enumerate}
+
+Jede dieser vier Änderungen ist für sich genommen nicht kompliziert --
+das Muster ist ja bei DeepCoder bereits erfolgreich erprobt. Der
+eigentliche Aufwand liegt nicht in der Logik, sondern in der
+\textbf{Bauumgebung}, siehe unten.
+
+\subsection{Konkret geprüfter Befund: keine Build-Umgebung vorhanden}
+
+\begin{lstlisting}[language=bash]
+$ which ocaml ocamlfind dune opam
+(nichts gefunden)
+$ opam --version
+bash: opam: command not found
+$ find / -iname '*opam*'
+/etc/apparmor.d/opam        (AppArmor-Profil, kein Programm)
+/usr/share/vim/.../opam.vim (Vim-Syntaxdatei, kein Programm)
+\end{lstlisting}
+
+In der WSL-Umgebung ist aktuell \emph{kein} OCaml-Build-Toolchain
+installiert. Die vorhandenen Binaries \texttt{solver} und
+\texttt{compression} sind vorgefertigt (Änderungsdatum 10.\,Juli, aus der
+ursprünglichen Repository-Einrichtung) und lokal nicht neu baubar. Das
+Build-System selbst (\texttt{solvers/Makefile}) verrät zusätzlich, mit
+welchem -- inzwischen unüblichen -- Werkzeug gebaut wurde:
+
+\begin{lstlisting}[language=bash]
+c = corebuild -pkg yojson -pkg re2 -tag unsafe -tag "optimize(3)"
+\end{lstlisting}
+
+\texttt{corebuild} ist ein älteres, auf Jane Streets \texttt{Core}-
+Bibliothek zugeschnittenes Build-Werkzeug (Vorgänger des heute üblichen
+\texttt{dune}). Zusätzliche Abhängigkeit: \texttt{re2}, eine
+OCaml-Anbindung an Googles gleichnamige C++-Regex-Bibliothek -- solche
+nativen Bindings sind erfahrungsgemäß besonders versionsempfindlich beim
+Neuaufsetzen. Es existiert weder ein Dockerfile noch ein Setup-Skript im
+Repository, das den ursprünglichen Build-Prozess dokumentiert oder
+reproduzierbar macht.
+
+\subsection{Kosten-Nutzen-Abwägung}
+
+Vor der eigentlichen Code-Änderung (Abschnitt 5.2) stünde also erst der
+Aufbau einer kompletten OCaml-Toolchain: \texttt{opam} installieren,
+einen zur \texttt{Core}-Version passenden OCaml-Switch anlegen,
+\texttt{core}, \texttt{yojson} und \texttt{re2} samt alle transitiven
+Abhängigkeiten installieren, und danach verifizieren, dass sich der
+\emph{unveränderte} Code überhaupt noch baut, bevor die eigentliche
+Änderung überhaupt begonnen werden kann. Realistischer Aufwand: 1\,+\,
+Stunden, mit ungewissem Ausgang -- gerade \texttt{re2} ist ein bekannter
+Quell für Build-Fehler bei neu aufgesetzten OCaml-Umgebungen.
+
+Angesichts dieses Aufwands-Nutzen-Verhältnisses -- und angesichts der
+Erfahrung aus der heutigen Arbeit, wie instabil die WSL2-Umgebung bereits
+bei reinen Python-Läufen war (Speicherabstürze, siehe separate
+Bemerkung) -- wurde bewusst entschieden, diese Erweiterung
+\textbf{nicht} umzusetzen. Die vier oben skizzierten Schritte bleiben
+als konkret ausformulierter, sofort umsetzbarer nächster Schritt
+festgehalten, falls zu einem späteren Zeitpunkt eine funktionierende
+OCaml-Umgebung zur Verfügung steht.
+
+\textbf{Wichtig für die Einordnung der Ergebnisse:} Diese Entscheidung
+schränkt \emph{nicht} die Gültigkeit der bisherigen DreamCoder-Ergebnisse
+ein. Sie bedeutet lediglich, dass für DreamCoders ungelöste Aufgaben --
+anders als bei DeepCoder -- weiterhin nur der binäre Zustand
+``gelöst/nicht gelöst'' und keine graduelle Teilkorrektheit verfügbar
+ist.
+
+\end{document}

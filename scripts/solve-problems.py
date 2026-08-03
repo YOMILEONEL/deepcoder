@@ -27,25 +27,29 @@ def solve_problem(problem, T, mode='dfs', gas=np.inf):
         search_func = search.sort_and_add
     else:
         raise ValueError('invalid search mode {}'.format(mode))
-    solution, steps_used = search_func(examples, T, ctx, gas)
+    solution, steps_used, best_partial, best_partial_count = search_func(examples, T, ctx, gas)
     end = time.time()
     if solution:
         solution = solution.prefix
-    return solution, end - start, steps_used
+    if best_partial:
+        best_partial = best_partial.prefix
+    return solution, end - start, steps_used, best_partial, best_partial_count, len(examples)
 
 def solve_problems(problems, T, mode='dfs', gas=np.inf):
     rows = []
     pbar = tqdm.tqdm(total=len(problems))
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        futs = [executor.submit(solve_problem, problem, T, mode, gas) 
+        futs = [executor.submit(solve_problem, problem, T, mode, gas)
                 for problem in problems]
         for fut, problem in zip(futs, problems):
-            solution, walltime, steps_used = fut.result()
+            solution, walltime, steps_used, best_partial, best_partial_count, nb_examples = fut.result()
             rows.append(collections.OrderedDict([
                 ('nb_steps', steps_used),
                 ('wall_ms', walltime * 1000),
                 ('solution', solution),
                 ('reference', problem['program']),
+                ('best_partial_solution', None if solution else best_partial),
+                ('best_partial_match_fraction', None if solution else best_partial_count / nb_examples),
             ]))
             pbar.update(1)
     pbar.close()
@@ -82,6 +86,11 @@ def main():
     print('summary:')
     print('solved {}/{} ({}%)'.format(nb_solved, len(df), nb_solved * 100. / len(df)))
     print(df.describe())
+    unsolved = df[df.solution.isnull()]
+    nb_with_partial = int(unsolved.best_partial_solution.notna().sum())
+    print('of {} unsolved tasks, {} have a best-partial candidate (mean match fraction {:.3f})'.format(
+        len(unsolved), nb_with_partial,
+        unsolved.best_partial_match_fraction.mean() if nb_with_partial else float('nan')))
     if args.outfile:
         print('saving results to', args.outfile)
         df.to_hdf(args.outfile, 'data')

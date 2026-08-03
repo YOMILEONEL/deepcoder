@@ -1,14 +1,14 @@
-Saved 100 rows to c:\BA\deepcoder\deepcoder_pipeline\output\runs\T2_gas1000_epochs10_seed42\solve_with_predictor.csv
-                        reference  ...    wall_ms
-0        LIST|COUNT,<0,0|TAKE,1,0  ...  50.114870
-1  LIST|FILTER,<0,0|ZIPWITH,*,0,1  ...  50.114870
-2  LIST|FILTER,<0,0|ZIPWITH,*,1,1  ...  33.590794
-3      LIST|FILTER,>0,0|MAP,*-1,1  ...   6.280899
-4         LIST|FILTER,>0,0|TAIL,1  ...  33.257723
-5     LIST|FILTER,EVEN,0|MAP,+1,1  ...  16.524076
-6    LIST|FILTER,ODD,0|COUNT,>0,1  ...  26.537895
-7      LIST|FILTER,ODD,0|MAP,*4,1  ...  32.697916
-8    LIST|INT|MAP,/3,0|ACCESS,1,2  ...   0.000000
-9    LIST|INT|SCAN1L,-,0|TAKE,1,2  ...  33.327818
+Saved 100 rows to C:\BA\deepcoder\deepcoder_pipeline\output\runs\T2_gas1000_epochs10_seed42\solve_with_predictor.csv
+                        reference  ... best_partial_match_fraction
+0        LIST|COUNT,<0,0|TAKE,1,0  ...                         0.4
+1  LIST|FILTER,<0,0|ZIPWITH,*,0,1  ...                         0.4
+2  LIST|FILTER,<0,0|ZIPWITH,*,1,1  ...                         0.0
+3      LIST|FILTER,>0,0|MAP,*-1,1  ...                         NaN
+4         LIST|FILTER,>0,0|TAIL,1  ...                         NaN
+5     LIST|FILTER,EVEN,0|MAP,+1,1  ...                         NaN
+6    LIST|FILTER,ODD,0|COUNT,>0,1  ...                         NaN
+7      LIST|FILTER,ODD,0|MAP,*4,1  ...                         0.0
+8    LIST|INT|MAP,/3,0|ACCESS,1,2  ...                         NaN
+9    LIST|INT|SCAN1L,-,0|TAKE,1,2  ...                         0.8
 
-[10 rows x 5 columns]
+[10 rows x 7 columns]

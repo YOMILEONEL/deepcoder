@@ -1,30 +1,42 @@
 
-1/4 [======>.......................] - ETA: 8s
-4/4 [==============================] - 3s 10ms/step
+1/4 [======>.......................] - ETA: 9s
+4/4 [==============================] - 3s 12ms/step
 
   0%|          | 0/100 [00:00<?, ?it/s]
-  1%|          | 1/100 [00:05<08:16,  5.02s/it]
- 19%|█▉        | 19/100 [00:05<00:15,  5.15it/s]
- 36%|███▌      | 36/100 [00:05<00:05, 11.31it/s]
- 56%|█████▌    | 56/100 [00:05<00:02, 20.78it/s]
- 82%|████████▏ | 82/100 [00:05<00:00, 36.21it/s]
-100%|██████████| 100/100 [00:06<00:00, 15.95it/s]
-summary:
-solved 65/100 (65.0%)
-         nb_steps     wall_ms
-count   100.00000  100.000000
-mean    508.89000   20.620141
-std     422.07929   18.688063
-min       1.00000    0.000000
-25%      62.50000    1.269042
-50%     461.00000   16.616702
-75%    1000.00000   33.411503
-max    1007.00000   66.364050
-saving results to c:\BA\deepcoder\deepcoder_pipeline\output\runs\T2_gas1000_epochs10_seed42\solve_with_predictor.h5
-c:\BA\deepcoder\deepcoder_pipeline\scripts\solve-problems.py:95: FutureWarning: Starting with pandas version 3.0 all arguments of to_hdf except for the argument 'path_or_buf' will be keyword-only.
+  1%|          | 1/100 [00:05<09:40,  5.86s/it]
+  3%|▎         | 3/100 [00:05<02:31,  1.56s/it]
+  8%|▊         | 8/100 [00:06<00:41,  2.20it/s]
+ 16%|█▌        | 16/100 [00:06<00:15,  5.50it/s]
+ 20%|██        | 20/100 [00:06<00:10,  7.46it/s]
+ 24%|██▍       | 24/100 [00:06<00:07,  9.56it/s]
+ 28%|██▊       | 28/100 [00:06<00:06, 11.36it/s]
+ 34%|███▍      | 34/100 [00:06<00:04, 16.22it/s]
+ 38%|███▊      | 38/100 [00:07<00:03, 17.86it/s]
+ 47%|████▋     | 47/100 [00:07<00:02, 25.90it/s]
+ 53%|█████▎    | 53/100 [00:07<00:01, 31.29it/s]
+ 61%|██████    | 61/100 [00:07<00:00, 40.31it/s]
+ 67%|██████▋   | 67/100 [00:07<00:00, 44.22it/s]
+ 75%|███████▌  | 75/100 [00:07<00:00, 47.99it/s]
+ 81%|████████  | 81/100 [00:07<00:00, 35.04it/s]
+ 86%|████████▌ | 86/100 [00:08<00:00, 35.74it/s]
+100%|██████████| 100/100 [00:08<00:00, 11.17it/s]
+C:\BA\deepcoder\deepcoder_pipeline\scripts\solve-problems.py:104: FutureWarning: Starting with pandas version 3.0 all arguments of to_hdf except for the argument 'path_or_buf' will be keyword-only.
   df.to_hdf(args.outfile, 'data')
-c:\BA\deepcoder\deepcoder_pipeline\scripts\solve-problems.py:95: PerformanceWarning: 
+C:\BA\deepcoder\deepcoder_pipeline\scripts\solve-problems.py:104: PerformanceWarning: 
 your performance may suffer as PyTables will pickle object types that it cannot
-map directly to c-types [inferred_type->mixed,key->block2_values] [items->Index(['solution', 'reference'], dtype='object')]
+map directly to c-types [inferred_type->mixed,key->block2_values] [items->Index(['solution', 'reference', 'best_partial_solution'], dtype='object')]
 
   df.to_hdf(args.outfile, 'data')
+summary:
+solved 65/100 (65.0%)
+          nb_steps     wall_ms  best_partial_match_fraction
+count   100.000000  100.000000                    35.000000
+mean    508.920000   93.375487                     0.188571
+std     422.114654   83.483465                     0.227223
+min       1.000000    0.000000                     0.000000
+25%      62.500000   10.957301                     0.000000
+50%     461.000000   71.714520                     0.200000
+75%    1000.000000  162.682950                     0.200000
+max    1007.000000  340.485811                     0.800000
+of 35 unsolved tasks, 20 have a best-partial candidate (mean match fraction 0.189)
+saving results to C:\BA\deepcoder\deepcoder_pipeline\output\runs\T2_gas1000_epochs10_seed42\solve_with_predictor.h5
