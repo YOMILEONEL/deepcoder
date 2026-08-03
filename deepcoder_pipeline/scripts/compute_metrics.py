@@ -57,7 +57,7 @@ def program_operation_score(reference_tokens, solution_tokens):
     for token in ref_counter:
         overlap += min(ref_counter[token], sol_counter.get(token, 0))
 
-    return overlap / len(reference_tokens)
+    return overlap / max(len(reference_tokens), len(solution_tokens))
 
 
 def program_position_score(reference_tokens, solution_tokens):
@@ -107,7 +107,7 @@ def program_order_score(reference_tokens, solution_tokens):
         return 0.0
 
     lccl = longest_common_contiguous_length(reference_tokens, solution_tokens)
-    return lccl / len(reference_tokens)
+    return lccl / max(len(reference_tokens), len(solution_tokens))
 
 
 def levenshtein_distance(a, b):
