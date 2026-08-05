@@ -31,11 +31,16 @@ def tokenize_program(program):
     return [token.strip() for token in program.split("|") if token.strip()]
 
 
-def accuracy(reference_tokens, solution_tokens):
+def exact_match(reference_tokens, solution_tokens):
     """
-    Binary Accuracy:
+    Binary ExactMatch:
     1 if the generated program is exactly equal to the reference program,
     otherwise 0.
+
+    This is a program-level comparison, not an output-level one - unlike
+    accuracy (= solved, i.e. whether the found program satisfies all given
+    examples), it is not "Accuracy" in the sense used elsewhere in this
+    project and must not be called that.
     """
     return 1.0 if reference_tokens == solution_tokens else 0.0
 
@@ -192,7 +197,7 @@ def main():
         reference_tokens = tokenize_program(row["reference"])
         solution_tokens = tokenize_program(row["solution"])
 
-        acc = accuracy(reference_tokens, solution_tokens)
+        em = exact_match(reference_tokens, solution_tokens)
         op_score = program_operation_score(reference_tokens, solution_tokens)
         pos_score = program_position_score(reference_tokens, solution_tokens)
         order_score = program_order_score(reference_tokens, solution_tokens)
@@ -222,7 +227,7 @@ def main():
             "reference": row["reference"],
             "solution": row["solution"],
             "solved": row["solved"],
-            "accuracy": acc,
+            "exact_match": em,
             "program_operation_score": op_score,
             "program_position_score": pos_score,
             "program_order_score": order_score,
@@ -245,7 +250,7 @@ def main():
     print()
     print("Summary:")
     print(out_df[[
-        "accuracy",
+        "exact_match",
         "program_operation_score",
         "program_position_score",
         "program_order_score",

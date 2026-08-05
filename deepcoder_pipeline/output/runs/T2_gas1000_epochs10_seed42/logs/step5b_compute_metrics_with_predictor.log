@@ -1,15 +1,15 @@
 Saved 100 rows to C:\BA\deepcoder\deepcoder_pipeline\output\runs\T2_gas1000_epochs10_seed42\metrics_with_predictor.csv
 
 Summary:
-         accuracy  ...  best_effort_partial_correctness
-count  100.000000  ...                       100.000000
-mean     0.190000  ...                         0.501958
-std      0.394277  ...                         0.311968
-min      0.000000  ...                         0.000000
-25%      0.000000  ...                         0.333333
-50%      0.000000  ...                         0.500000
-75%      0.000000  ...                         0.666667
-max      1.000000  ...                         1.000000
+       exact_match  ...  best_effort_partial_correctness
+count   100.000000  ...                       100.000000
+mean      0.190000  ...                         0.501958
+std       0.394277  ...                         0.311968
+min       0.000000  ...                         0.000000
+25%       0.000000  ...                         0.333333
+50%       0.000000  ...                         0.500000
+75%       0.000000  ...                         0.666667
+max       1.000000  ...                         1.000000
 
 [8 rows x 7 columns]
 
