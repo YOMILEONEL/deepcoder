@@ -103,7 +103,7 @@ def longest_common_contiguous_length(a, b):
     return best
 
 
-def program_order_score(reference_tokens, solution_tokens):
+def program_sequence_score(reference_tokens, solution_tokens):
     """
     Measures whether the relative order of tokens is preserved.
     Based on normalized Longest Common contiguous token block.
@@ -158,11 +158,11 @@ def program_edit_score(reference_tokens, solution_tokens):
     return 1.0 - (distance / max_len)
 
 
-def partial_correctness(pos_score, op_score, order_score, edit_score):
+def partial_correctness(pos_score, op_score, sequence_score, edit_score):
     """
     Combined metric using equal weights.
     """
-    return 0.25 * pos_score + 0.25 * op_score + 0.25 * order_score + 0.25 * edit_score
+    return 0.25 * pos_score + 0.25 * op_score + 0.25 * sequence_score + 0.25 * edit_score
 
 
 def is_present(value):
@@ -200,13 +200,13 @@ def main():
         em = exact_match(reference_tokens, solution_tokens)
         op_score = program_operation_score(reference_tokens, solution_tokens)
         pos_score = program_position_score(reference_tokens, solution_tokens)
-        order_score = program_order_score(reference_tokens, solution_tokens)
+        sequence_score = program_sequence_score(reference_tokens, solution_tokens)
         edit_score = program_edit_score(reference_tokens, solution_tokens)
 
         partial = partial_correctness(
             pos_score=pos_score,
             op_score=op_score,
-            order_score=order_score,
+            sequence_score=sequence_score,
             edit_score=edit_score
         )
 
@@ -214,12 +214,12 @@ def main():
         best_effort_tokens = tokenize_program(best_effort)
         be_op_score = program_operation_score(reference_tokens, best_effort_tokens)
         be_pos_score = program_position_score(reference_tokens, best_effort_tokens)
-        be_order_score = program_order_score(reference_tokens, best_effort_tokens)
+        be_sequence_score = program_sequence_score(reference_tokens, best_effort_tokens)
         be_edit_score = program_edit_score(reference_tokens, best_effort_tokens)
         be_partial = partial_correctness(
             pos_score=be_pos_score,
             op_score=be_op_score,
-            order_score=be_order_score,
+            sequence_score=be_sequence_score,
             edit_score=be_edit_score,
         )
 
@@ -230,13 +230,13 @@ def main():
             "exact_match": em,
             "program_operation_score": op_score,
             "program_position_score": pos_score,
-            "program_order_score": order_score,
+            "program_sequence_score": sequence_score,
             "program_edit_score": edit_score,
             "partial_correctness": partial,
             "best_effort_program": best_effort,
             "best_effort_operation_score": be_op_score,
             "best_effort_position_score": be_pos_score,
-            "best_effort_order_score": be_order_score,
+            "best_effort_sequence_score": be_sequence_score,
             "best_effort_edit_score": be_edit_score,
             "best_effort_partial_correctness": be_partial,
             "nb_steps": row["nb_steps"],
@@ -253,7 +253,7 @@ def main():
         "exact_match",
         "program_operation_score",
         "program_position_score",
-        "program_order_score",
+        "program_sequence_score",
         "program_edit_score",
         "partial_correctness",
         "best_effort_partial_correctness",
