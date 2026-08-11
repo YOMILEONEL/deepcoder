@@ -45,82 +45,99 @@ def exact_match(reference_tokens, solution_tokens):
     return 1.0 if reference_tokens == solution_tokens else 0.0
 
 
-def program_operation_score(reference_tokens, solution_tokens):
+def program_operation_score(reference_tokens, generated_tokens):
     """
     Measures whether the same operations/tokens occur,
     independent of their position.
 
     It uses multiset overlap, so repeated operations are handled correctly.
+
+    Shared implementation, identical in the DreamCoder pipeline's
+    step07_calculate_metrics.py - keep both in sync.
     """
-    if not reference_tokens:
+    if not reference_tokens and not generated_tokens:
+        return 0.0
+    if not reference_tokens or not generated_tokens:
         return 0.0
 
     ref_counter = Counter(reference_tokens)
-    sol_counter = Counter(solution_tokens)
+    gen_counter = Counter(generated_tokens)
 
     overlap = 0
     for token in ref_counter:
-        overlap += min(ref_counter[token], sol_counter.get(token, 0))
+        overlap += min(ref_counter[token], gen_counter.get(token, 0))
 
-    return overlap / max(len(reference_tokens), len(solution_tokens))
+    return overlap / max(len(reference_tokens), len(generated_tokens))
 
 
-def program_position_score(reference_tokens, solution_tokens):
+def program_position_score(reference_tokens, generated_tokens):
     """
     Measures how many tokens are equal at the same position.
-    """
-    if not reference_tokens:
-        return 0.0
 
-    max_len = max(len(reference_tokens), len(solution_tokens))
-    if max_len == 0:
+    Shared implementation, identical in the DreamCoder pipeline's
+    step07_calculate_metrics.py - keep both in sync.
+    """
+    if not reference_tokens and not generated_tokens:
+        return 0.0
+    if not reference_tokens or not generated_tokens:
         return 0.0
 
     matches = 0
-    for i in range(min(len(reference_tokens), len(solution_tokens))):
-        if reference_tokens[i] == solution_tokens[i]:
+    for i in range(min(len(reference_tokens), len(generated_tokens))):
+        if reference_tokens[i] == generated_tokens[i]:
             matches += 1
 
-    return matches / max_len
+    return matches / max(len(reference_tokens), len(generated_tokens))
 
 
-def longest_common_contiguous_length(a, b):
+def longest_common_contiguous_length(reference_tokens, generated_tokens):
     """
     Longest common contiguous token block.
+
+    Shared implementation, identical in the DreamCoder pipeline's
+    step07_calculate_metrics.py - keep both in sync.
     """
-    if not a or not b:
+    if not reference_tokens or not generated_tokens:
         return 0
 
-    dp = [[0] * (len(b) + 1) for _ in range(len(a) + 1)]
+    dp = [[0] * (len(generated_tokens) + 1) for _ in range(len(reference_tokens) + 1)]
     best = 0
 
-    for i in range(1, len(a) + 1):
-        for j in range(1, len(b) + 1):
-            if a[i - 1] == b[j - 1]:
+    for i in range(1, len(reference_tokens) + 1):
+        for j in range(1, len(generated_tokens) + 1):
+            if reference_tokens[i - 1] == generated_tokens[j - 1]:
                 dp[i][j] = dp[i - 1][j - 1] + 1
                 best = max(best, dp[i][j])
 
     return best
 
 
-def program_sequence_score(reference_tokens, solution_tokens):
+def program_sequence_score(reference_tokens, generated_tokens):
     """
     Measures whether the relative order of tokens is preserved.
     Based on normalized Longest Common contiguous token block.
+
+    Shared implementation, identical in the DreamCoder pipeline's
+    step07_calculate_metrics.py - keep both in sync.
     """
-    if not reference_tokens:
+    if not reference_tokens and not generated_tokens:
+        return 0.0
+    if not reference_tokens or not generated_tokens:
         return 0.0
 
-    lccl = longest_common_contiguous_length(reference_tokens, solution_tokens)
-    return lccl / max(len(reference_tokens), len(solution_tokens))
+    lccl = longest_common_contiguous_length(reference_tokens, generated_tokens)
+    return lccl / max(len(reference_tokens), len(generated_tokens))
 
 
-def levenshtein_distance(a, b):
+def levenshtein_distance(reference_tokens, generated_tokens):
     """
     Computes token-level Levenshtein distance.
+
+    Shared implementation, identical in the DreamCoder pipeline's
+    step07_calculate_metrics.py - keep both in sync.
     """
-    n = len(a)
-    m = len(b)
+    n = len(reference_tokens)
+    m = len(generated_tokens)
 
     dp = [[0] * (m + 1) for _ in range(n + 1)]
 
@@ -132,7 +149,7 @@ def levenshtein_distance(a, b):
 
     for i in range(1, n + 1):
         for j in range(1, m + 1):
-            cost = 0 if a[i - 1] == b[j - 1] else 1
+            cost = 0 if reference_tokens[i - 1] == generated_tokens[j - 1] else 1
 
             dp[i][j] = min(
                 dp[i - 1][j] + 1,       # deletion
@@ -143,18 +160,22 @@ def levenshtein_distance(a, b):
     return dp[n][m]
 
 
-def program_edit_score(reference_tokens, solution_tokens):
+def program_edit_score(reference_tokens, generated_tokens):
     """
     Converts edit distance into a similarity score in [0, 1].
     1 means identical programs.
     0 means maximally different according to normalized edit distance.
-    """
-    max_len = max(len(reference_tokens), len(solution_tokens))
 
-    if max_len == 0:
+    Shared implementation, identical in the DreamCoder pipeline's
+    step07_calculate_metrics.py - keep both in sync.
+    """
+    if not reference_tokens and not generated_tokens:
+        return 0.0
+    if not reference_tokens or not generated_tokens:
         return 0.0
 
-    distance = levenshtein_distance(reference_tokens, solution_tokens)
+    max_len = max(len(reference_tokens), len(generated_tokens))
+    distance = levenshtein_distance(reference_tokens, generated_tokens)
     return 1.0 - (distance / max_len)
 
 
