@@ -1,0 +1,38 @@
+
+1/4 [======>.......................] - ETA: 7s
+4/4 [==============================] - 3s 9ms/step
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+  1%|1         | 1/100 [00:05<09:06,  5.52s/it]
+  7%|7         | 7/100 [00:05<00:55,  1.69it/s]
+ 11%|#1        | 11/100 [00:05<00:29,  2.99it/s]
+ 18%|#8        | 18/100 [00:05<00:13,  6.11it/s]
+ 24%|##4       | 24/100 [00:06<00:08,  9.12it/s]
+ 33%|###3      | 33/100 [00:06<00:04, 14.94it/s]
+ 38%|###8      | 38/100 [00:06<00:03, 17.22it/s]
+ 45%|####5     | 45/100 [00:06<00:02, 23.33it/s]
+ 51%|#####1    | 51/100 [00:06<00:01, 24.64it/s]
+ 56%|#####6    | 56/100 [00:06<00:01, 27.90it/s]
+ 79%|#######9  | 79/100 [00:07<00:00, 45.40it/s]
+ 93%|#########3| 93/100 [00:07<00:00, 59.68it/s]
+100%|##########| 100/100 [00:07<00:00, 12.57it/s]
+C:\BA\deepcoder\deepcoder_pipeline\scripts\solve-problems.py:104: FutureWarning: Starting with pandas version 3.0 all arguments of to_hdf except for the argument 'path_or_buf' will be keyword-only.
+  df.to_hdf(args.outfile, 'data')
+C:\BA\deepcoder\deepcoder_pipeline\scripts\solve-problems.py:104: PerformanceWarning: 
+your performance may suffer as PyTables will pickle object types that it cannot
+map directly to c-types [inferred_type->mixed,key->block2_values] [items->Index(['solution', 'reference', 'best_partial_solution'], dtype='object')]
+
+  df.to_hdf(args.outfile, 'data')
+summary:
+solved 66/100 (66.0%)
+          nb_steps     wall_ms  best_partial_match_fraction
+count   100.000000  100.000000                    34.000000
+mean    490.970000   69.807222                     0.217647
+std     422.897783   65.848164                     0.243050
+min       1.000000    0.000000                     0.000000
+25%      76.250000    6.483793                     0.000000
+50%     342.000000   46.784759                     0.200000
+75%    1000.000000  124.792159                     0.200000
+max    1006.000000  241.901636                     0.800000
+of 34 unsolved tasks, 22 have a best-partial candidate (mean match fraction 0.218)
+saving results to C:\BA\deepcoder\deepcoder_pipeline\output\runs\T2_gas1000_epochs10_seed0\solve_with_predictor.h5

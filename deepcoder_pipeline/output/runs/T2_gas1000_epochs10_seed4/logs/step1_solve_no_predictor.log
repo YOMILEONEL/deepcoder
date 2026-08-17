@@ -1,0 +1,40 @@
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+  1%|1         | 1/100 [00:05<08:48,  5.34s/it]
+  3%|3         | 3/100 [00:05<02:18,  1.42s/it]
+ 10%|#         | 10/100 [00:05<00:28,  3.17it/s]
+ 17%|#7        | 17/100 [00:05<00:12,  6.39it/s]
+ 22%|##2       | 22/100 [00:05<00:08,  9.13it/s]
+ 27%|##7       | 27/100 [00:05<00:06, 11.72it/s]
+ 31%|###1      | 31/100 [00:06<00:04, 13.90it/s]
+ 35%|###5      | 35/100 [00:06<00:03, 16.25it/s]
+ 39%|###9      | 39/100 [00:06<00:03, 17.94it/s]
+ 43%|####3     | 43/100 [00:06<00:02, 19.08it/s]
+ 48%|####8     | 48/100 [00:06<00:02, 23.19it/s]
+ 52%|#####2    | 52/100 [00:06<00:01, 24.21it/s]
+ 56%|#####6    | 56/100 [00:06<00:01, 25.81it/s]
+ 62%|######2   | 62/100 [00:07<00:01, 32.80it/s]
+ 66%|######6   | 66/100 [00:07<00:01, 32.69it/s]
+ 79%|#######9  | 79/100 [00:07<00:00, 46.25it/s]
+ 85%|########5 | 85/100 [00:07<00:00, 41.98it/s]
+100%|##########| 100/100 [00:08<00:00, 11.85it/s]
+C:\BA\deepcoder\deepcoder_pipeline\scripts\solve-problems.py:104: FutureWarning: Starting with pandas version 3.0 all arguments of to_hdf except for the argument 'path_or_buf' will be keyword-only.
+  df.to_hdf(args.outfile, 'data')
+C:\BA\deepcoder\deepcoder_pipeline\scripts\solve-problems.py:104: PerformanceWarning: 
+your performance may suffer as PyTables will pickle object types that it cannot
+map directly to c-types [inferred_type->mixed,key->block2_values] [items->Index(['solution', 'reference', 'best_partial_solution'], dtype='object')]
+
+  df.to_hdf(args.outfile, 'data')
+summary:
+solved 53/100 (53.0%)
+          nb_steps     wall_ms  best_partial_match_fraction
+count   100.000000  100.000000                    47.000000
+mean    628.420000   95.337908                     0.187234
+std     412.020181   69.653462                     0.233701
+min       1.000000    0.000000                     0.000000
+25%     175.500000   19.705772                     0.000000
+50%     830.000000  107.522011                     0.200000
+75%    1000.000000  143.132448                     0.200000
+max    1002.000000  244.662762                     0.800000
+of 47 unsolved tasks, 25 have a best-partial candidate (mean match fraction 0.187)
+saving results to C:\BA\deepcoder\deepcoder_pipeline\output\runs\T2_gas1000_epochs10_seed4\solve_no_predictor.h5

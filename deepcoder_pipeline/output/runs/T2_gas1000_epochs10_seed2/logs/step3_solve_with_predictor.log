@@ -1,0 +1,39 @@
+
+1/4 [======>.......................] - ETA: 7s
+4/4 [==============================] - 3s 11ms/step
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+  1%|1         | 1/100 [00:05<09:17,  5.63s/it]
+  7%|7         | 7/100 [00:05<00:56,  1.65it/s]
+ 11%|#1        | 11/100 [00:05<00:30,  2.94it/s]
+ 18%|#8        | 18/100 [00:06<00:13,  5.92it/s]
+ 24%|##4       | 24/100 [00:06<00:08,  8.71it/s]
+ 32%|###2      | 32/100 [00:06<00:05, 13.52it/s]
+ 37%|###7      | 37/100 [00:06<00:04, 15.43it/s]
+ 41%|####1     | 41/100 [00:06<00:03, 16.62it/s]
+ 50%|#####     | 50/100 [00:06<00:02, 24.91it/s]
+ 64%|######4   | 64/100 [00:06<00:00, 40.81it/s]
+ 72%|#######2  | 72/100 [00:07<00:00, 46.64it/s]
+ 81%|########1 | 81/100 [00:07<00:00, 52.06it/s]
+ 88%|########8 | 88/100 [00:07<00:00, 51.18it/s]
+100%|##########| 100/100 [00:08<00:00, 12.19it/s]
+C:\BA\deepcoder\deepcoder_pipeline\scripts\solve-problems.py:104: FutureWarning: Starting with pandas version 3.0 all arguments of to_hdf except for the argument 'path_or_buf' will be keyword-only.
+  df.to_hdf(args.outfile, 'data')
+C:\BA\deepcoder\deepcoder_pipeline\scripts\solve-problems.py:104: PerformanceWarning: 
+your performance may suffer as PyTables will pickle object types that it cannot
+map directly to c-types [inferred_type->mixed,key->block2_values] [items->Index(['solution', 'reference', 'best_partial_solution'], dtype='object')]
+
+  df.to_hdf(args.outfile, 'data')
+summary:
+solved 70/100 (70.0%)
+          nb_steps     wall_ms  best_partial_match_fraction
+count   100.000000  100.000000                    30.000000
+mean    464.380000   73.955455                     0.173333
+std     402.672556   64.398865                     0.187420
+min       1.000000    0.000000                     0.000000
+25%      72.000000   12.339056                     0.000000
+50%     319.000000   59.277296                     0.200000
+75%    1000.000000  135.008335                     0.200000
+max    1006.000000  217.864275                     0.800000
+of 30 unsolved tasks, 19 have a best-partial candidate (mean match fraction 0.173)
+saving results to C:\BA\deepcoder\deepcoder_pipeline\output\runs\T2_gas1000_epochs10_seed2\solve_with_predictor.h5

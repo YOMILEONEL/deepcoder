@@ -1,0 +1,25 @@
+Saved 100 rows to C:\BA\deepcoder\deepcoder_pipeline\output\runs\T2_gas1000_epochs10_seed0\metrics_no_predictor.csv
+
+Summary:
+       exact_match  ...  best_effort_partial_correctness
+count   100.000000  ...                       100.000000
+mean      0.110000  ...                         0.414917
+std       0.314466  ...                         0.291750
+min       0.000000  ...                         0.000000
+25%       0.000000  ...                         0.333333
+50%       0.000000  ...                         0.416667
+75%       0.000000  ...                         0.500000
+max       1.000000  ...                         1.000000
+
+[8 rows x 7 columns]
+
+Solved count:
+solved
+True     53
+False    47
+Name: count, dtype: int64
+
+Unsolved tasks: 47
+  with a best-partial candidate: 25
+  mean partial_correctness (old, always 0): 0.0000
+  mean best_effort_partial_correctness (new): 0.2556
