@@ -1,10 +1,18 @@
-"""Regenerate the best-effort (unsolved-tasks) DeepCoder chart. The 'with
-training' configuration (which varies by seed since the solve rate itself
-varies) is collapsed into a single mean +/- std bar across its five seeds,
-matching the simplified result tables in the thesis. 'without training'
-stays a single bar since that configuration, and hence which tasks remain
-unsolved, is fully deterministic and identical across seeds. Uses the
-thesis's own short metric names (POS/PPS/PSS/PES).
+"""Regenerate the two best-effort DeepCoder charts:
+
+1. deepcoder_metric_comparison_unsolved.png - all unsolved tasks, tasks with
+   no stored best-effort candidate scored 0 (the same zero-convention used
+   for unsolved tasks throughout this chapter).
+2. deepcoder_metric_comparison_besteffort.png - only the unsolved tasks that
+   actually have a stored best-effort candidate, so the mean reflects how
+   close a captured candidate is, not how often the search keeps one at all.
+
+The 'with training' configuration (which varies by seed since the solve rate
+itself varies) is collapsed into a single mean +/- std bar across its five
+seeds, matching the simplified result tables in the thesis. 'without
+training' stays a single bar since that configuration, and hence which
+tasks remain unsolved, is fully deterministic and identical across seeds.
+Uses the thesis's own short metric names (POS/PPS/PSS/PES).
 """
 import csv
 from pathlib import Path
@@ -38,20 +46,15 @@ def unsolved_stats(rows):
     # Tasks without a best-effort candidate score 0.0 on every metric (same
     # zero-convention as unsolved tasks elsewhere in this chapter), so the
     # mean is taken over all unsolved tasks, not only those with a candidate.
-    vals = [sum(float(r[m]) for r in unsolved) / len(unsolved) for m in METRIC_COLS]
-    return len(unsolved), len(with_candidate), vals
+    all_vals = [sum(float(r[m]) for r in unsolved) / len(unsolved) for m in METRIC_COLS]
+    # Candidate-only mean: restricted to the tasks that actually have a
+    # stored best-effort candidate, so this reflects how close a captured
+    # candidate is, not how often the search keeps one at all.
+    cand_vals = [sum(float(r[m]) for r in with_candidate) / len(with_candidate) for m in METRIC_COLS]
+    return len(unsolved), len(with_candidate), all_vals, cand_vals
 
 
-def main():
-    no_n, no_cand, no_vals = unsolved_stats(load_rows(SEEDS[0], "no"))
-
-    with_stats = [unsolved_stats(load_rows(s, "with")) for s in SEEDS]
-    with_series = [[with_stats[i][2][j] for i in range(len(SEEDS))] for j in range(len(LABELS))]
-    with_mean = [np.mean(v) for v in with_series]
-    with_std = [np.std(v) for v in with_series]
-    mean_n = np.mean([s[0] for s in with_stats])
-    mean_cand = np.mean([s[1] for s in with_stats])
-
+def bar_chart(no_vals, with_mean, with_std, no_n, no_cand, mean_n, mean_cand, title, outpath):
     x = np.arange(len(LABELS))
     group_width = 0.5
     bar_width = group_width / 2
@@ -67,7 +70,7 @@ def main():
 
     ax.set_ylim(0, 0.4)
     ax.set_ylabel("Mean")
-    ax.set_title("Unsolved Tasks Only: Best-Effort Structural Metrics (T=2, gas=1000)")
+    ax.set_title(title)
     ax.set_xticks(x)
     ax.set_xticklabels(LABELS, rotation=20, ha="right")
     ax.legend(fontsize=9)
@@ -75,10 +78,37 @@ def main():
     ax.set_axisbelow(True)
 
     plt.tight_layout()
-    outpath = Path("C:/Users/Lenovo PC/Downloads/Bachelorarbeit/repo/bachelorarbeit/arbeit/Latex_Template/Template 4/images/deepcoder_metric_comparison_unsolved.png")
     plt.savefig(outpath, dpi=200, bbox_inches="tight")
     plt.close(fig)
     print("saved", outpath)
+
+
+def main():
+    no_n, no_cand, no_all_vals, no_cand_vals = unsolved_stats(load_rows(SEEDS[0], "no"))
+
+    with_stats = [unsolved_stats(load_rows(s, "with")) for s in SEEDS]
+    mean_n = np.mean([s[0] for s in with_stats])
+    mean_cand = np.mean([s[1] for s in with_stats])
+
+    def collapse(idx):
+        series = [[with_stats[i][idx][j] for i in range(len(SEEDS))] for j in range(len(LABELS))]
+        return [np.mean(v) for v in series], [np.std(v) for v in series]
+
+    with_all_mean, with_all_std = collapse(2)
+    with_cand_mean, with_cand_std = collapse(3)
+
+    images_dir = Path("C:/Users/Lenovo PC/Downloads/Bachelorarbeit/repo/bachelorarbeit/arbeit/Latex_Template/Template 4/images")
+
+    bar_chart(
+        no_all_vals, with_all_mean, with_all_std, no_n, no_cand, mean_n, mean_cand,
+        "Unsolved Tasks Only: Best-Effort Structural Metrics (T=2, gas=1000)",
+        images_dir / "deepcoder_metric_comparison_unsolved.png",
+    )
+    bar_chart(
+        no_cand_vals, with_cand_mean, with_cand_std, no_n, no_cand, mean_n, mean_cand,
+        "Unsolved Tasks with a Stored Candidate Only (T=2, gas=1000)",
+        images_dir / "deepcoder_metric_comparison_besteffort.png",
+    )
 
 
 if __name__ == "__main__":
