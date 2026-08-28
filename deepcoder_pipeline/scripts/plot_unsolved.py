@@ -1,9 +1,10 @@
-"""Regenerate the best-effort (unsolved-tasks) DeepCoder chart across all
-five seeds, showing each seed as its own bar for the 'with training'
-configuration (which now varies by seed since the solve rate itself varies).
-'without training' stays a single bar since that configuration, and hence
-which tasks remain unsolved, is fully deterministic and identical across
-seeds. Uses the thesis's own short metric names (POS/PPS/PSS/PES).
+"""Regenerate the best-effort (unsolved-tasks) DeepCoder chart. The 'with
+training' configuration (which varies by seed since the solve rate itself
+varies) is collapsed into a single mean +/- std bar across its five seeds,
+matching the simplified result tables in the thesis. 'without training'
+stays a single bar since that configuration, and hence which tasks remain
+unsolved, is fully deterministic and identical across seeds. Uses the
+thesis's own short metric names (POS/PPS/PSS/PES).
 """
 import csv
 from pathlib import Path
@@ -21,8 +22,8 @@ METRIC_COLS = [
     "best_effort_edit_score",
 ]
 LABELS = ["POS", "PPS", "PSS", "PES"]
-SEED_COLORS = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple"]
 NO_TRAIN_COLOR = "tab:gray"
+WITH_TRAIN_COLOR = "tab:blue"
 
 
 def load_rows(seed, config):
@@ -45,32 +46,31 @@ def main():
     no_n, no_cand, no_vals = unsolved_stats(load_rows(SEEDS[0], "no"))
 
     with_stats = [unsolved_stats(load_rows(s, "with")) for s in SEEDS]
-    with_by_seed = [[with_stats[i][2][j] for i in range(len(SEEDS))] for j in range(len(LABELS))]
+    with_series = [[with_stats[i][2][j] for i in range(len(SEEDS))] for j in range(len(LABELS))]
+    with_mean = [np.mean(v) for v in with_series]
+    with_std = [np.std(v) for v in with_series]
+    mean_n = np.mean([s[0] for s in with_stats])
+    mean_cand = np.mean([s[1] for s in with_stats])
 
-    n_bars_per_group = 1 + len(SEEDS)
     x = np.arange(len(LABELS))
-    group_width = 0.82
-    bar_width = group_width / n_bars_per_group
+    group_width = 0.5
+    bar_width = group_width / 2
 
-    fig, ax = plt.subplots(figsize=(11, 5.5))
+    fig, ax = plt.subplots(figsize=(7, 5.5))
 
     offset0 = -group_width / 2 + bar_width / 2
     ax.bar(x + offset0, no_vals, bar_width, color=NO_TRAIN_COLOR,
            label=f"without training ({no_cand}/{no_n} with candidate)")
-
-    for i, seed in enumerate(SEEDS):
-        vals = [with_by_seed[j][i] for j in range(len(LABELS))]
-        n, cand, _ = with_stats[i]
-        offset = offset0 + (i + 1) * bar_width
-        ax.bar(x + offset, vals, bar_width, color=SEED_COLORS[i],
-               label=f"with training, seed {seed} ({cand}/{n} with candidate)")
+    ax.bar(x + offset0 + bar_width, with_mean, bar_width, yerr=with_std, capsize=4,
+           color=WITH_TRAIN_COLOR,
+           label=f"with training, mean $\\pm$ std (Ø {mean_cand:.1f}/{mean_n:.1f} with candidate)")
 
     ax.set_ylim(0, 0.4)
     ax.set_ylabel("Mean")
-    ax.set_title("Unsolved Tasks Only: Best-Effort Structural Metrics, per Seed (T=2, gas=1000)")
+    ax.set_title("Unsolved Tasks Only: Best-Effort Structural Metrics (T=2, gas=1000)")
     ax.set_xticks(x)
     ax.set_xticklabels(LABELS, rotation=20, ha="right")
-    ax.legend(ncol=2, fontsize=7.5)
+    ax.legend(fontsize=9)
     ax.yaxis.grid(True, linestyle=":", alpha=0.5)
     ax.set_axisbelow(True)
 

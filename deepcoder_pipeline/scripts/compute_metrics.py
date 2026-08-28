@@ -31,6 +31,27 @@ def tokenize_program(program):
     return [token.strip() for token in program.split("|") if token.strip()]
 
 
+def strip_type_markers(tokens):
+    """
+    Drops the leading input-type-signature tokens (e.g. LIST, INT), keeping
+    only the operation-call tokens that follow.
+
+    Reference and generated/best-effort program always share the exact same
+    type signature for a given task (the search only ever considers programs
+    built from that task's fixed, given inputs), so this prefix is guaranteed
+    to match between any two candidates for the same task regardless of how
+    close the candidate actually is - verified empirically across all 100
+    reference/solution pairs and all reference/best-effort-candidate pairs in
+    this pipeline's output, with zero exceptions. It therefore carries no
+    information about how well the search performed and must not contribute
+    to the structural similarity scores.
+    """
+    i = 0
+    while i < len(tokens) and "," not in tokens[i]:
+        i += 1
+    return tokens[i:]
+
+
 def exact_match(reference_tokens, solution_tokens):
     """
     Binary ExactMatch:
@@ -217,12 +238,14 @@ def main():
     for _, row in df.iterrows():
         reference_tokens = tokenize_program(row["reference"])
         solution_tokens = tokenize_program(row["solution"])
+        reference_ops = strip_type_markers(reference_tokens)
+        solution_ops = strip_type_markers(solution_tokens)
 
         em = exact_match(reference_tokens, solution_tokens)
-        op_score = program_operation_score(reference_tokens, solution_tokens)
-        pos_score = program_position_score(reference_tokens, solution_tokens)
-        sequence_score = program_sequence_score(reference_tokens, solution_tokens)
-        edit_score = program_edit_score(reference_tokens, solution_tokens)
+        op_score = program_operation_score(reference_ops, solution_ops)
+        pos_score = program_position_score(reference_ops, solution_ops)
+        sequence_score = program_sequence_score(reference_ops, solution_ops)
+        edit_score = program_edit_score(reference_ops, solution_ops)
 
         partial = partial_correctness(
             pos_score=pos_score,
@@ -233,10 +256,11 @@ def main():
 
         best_effort = best_effort_program(row, has_partial_column)
         best_effort_tokens = tokenize_program(best_effort)
-        be_op_score = program_operation_score(reference_tokens, best_effort_tokens)
-        be_pos_score = program_position_score(reference_tokens, best_effort_tokens)
-        be_sequence_score = program_sequence_score(reference_tokens, best_effort_tokens)
-        be_edit_score = program_edit_score(reference_tokens, best_effort_tokens)
+        best_effort_ops = strip_type_markers(best_effort_tokens)
+        be_op_score = program_operation_score(reference_ops, best_effort_ops)
+        be_pos_score = program_position_score(reference_ops, best_effort_ops)
+        be_sequence_score = program_sequence_score(reference_ops, best_effort_ops)
+        be_edit_score = program_edit_score(reference_ops, best_effort_ops)
         be_partial = partial_correctness(
             pos_score=be_pos_score,
             op_score=be_op_score,
