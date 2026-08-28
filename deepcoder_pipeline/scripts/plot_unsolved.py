@@ -68,7 +68,7 @@ def bar_chart(no_vals, with_mean, with_std, no_n, no_cand, mean_n, mean_cand, ti
            color=WITH_TRAIN_COLOR,
            label=f"with training, mean $\\pm$ std (Ø {mean_cand:.1f}/{mean_n:.1f} with candidate)")
 
-    ax.set_ylim(0, 0.4)
+    ax.set_ylim(0, 0.25)
     ax.set_ylabel("Mean")
     ax.set_title(title)
     ax.set_xticks(x)
