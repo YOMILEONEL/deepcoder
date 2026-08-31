@@ -33,6 +33,8 @@ Beispiel für einen zweiten Lauf mit anderem Budget:
 GAS=1000 ./run_all.sh
 ```
 
+Der in der Arbeit zitierte Lauf verwendet tatsächlich `GAS=1000` (nicht den Default `10000`), dafür über 5 Seeds gemittelt statt nur `seed=42`. Siehe Abschnitt "Multi-Seed-Lauf" und "Ergebnisse" unten für die genaue Konfiguration.
+
 Jeder Lauf (jede `T`/`GAS`/`EPOCHS`/`SEED`-Kombination) bekommt einen
 eigenen Ordner `output/runs/T<T>_gas<GAS>_epochs<EPOCHS>_seed<SEED>/` mit
 einer Datei pro Pipeline-Schritt und einem `logs/`-Unterordner darin —
@@ -63,10 +65,13 @@ deepcoder_pipeline/
 │   ├── solve-problems.py                 DFS-Solver (mit/ohne Prädiktor)
 │   ├── train-nn.py                       Training des neuronalen Prädiktors
 │   ├── export_results_to_csv.py          Konvertiert .h5-Ergebnisse nach CSV
-│   └── compute_metrics.py                CLI-Variante der Notebook-Metriken (+ partial_correctness)
+│   ├── compute_metrics.py                CLI-Variante der Notebook-Metriken (+ partial_correctness, best_effort_*)
+│   ├── plot_multiseed.py                 Regeneriert die Haupt-Vergleichsdiagramme über alle 5 Seeds (Thesis-Metriknamen)
+│   └── plot_unsolved.py                  Regeneriert die beiden Best-Effort-Diagramme über alle 5 Seeds
 ├── output/
 │   └── runs/                              ein Ordner pro T/GAS/EPOCHS/SEED-Kombination
-│       └── T2_gas10000_epochs10_seed42/
+│       ├── T2_gas1000_epochs10_seed{0,1,2,3,4}/   die 5 Seeds des in der Arbeit zitierten Laufs
+│       └── T2_gas10000_epochs10_seed42/           Schnellstart-Beispiel unten (einzelner Seed, größeres Budget)
 │           ├── model.h5                       trainierter Prädiktor
 │           ├── solve_no_predictor.h5/.csv     DFS ohne Training
 │           ├── solve_with_predictor.h5/.csv   DFS mit Training
@@ -75,6 +80,7 @@ deepcoder_pipeline/
 │           ├── metric_comparison.png          Notebook-Diagramm
 │           ├── pipeline_summary.txt           Notebook-Zusammenfassung
 │           └── logs/                          ein Log pro Pipeline-Schritt
+├── multiseed_run.log                      Gesamtlog des 5-Seed-Laufs, der für die Arbeit zitiert wird
 ├── deepcoder_metric_analysis.ipynb        Metrik-Auswertung + Diagramme
 └── README.md                              diese Datei
 ```
@@ -207,42 +213,103 @@ erneut ausführen — jeder Lauf bekommt einen eigenen Run-Ordner, nichts wird
     --outfile "$RUN\metrics_no_predictor.csv"
 ```
 
-Berechnet dieselben vier Ähnlichkeitsmetriken wie das Notebook, aber mit
-zwei Unterschieden:
+Berechnet dieselben vier Ähnlichkeitsmetriken wie das Notebook
+(`program_operation_score`, `program_position_score`,
+`program_sequence_score`, `program_edit_score`), plus:
 
-- `accuracy` bedeutet hier **exakte Token-Gleichheit** von Referenz- und
-  gefundenem Programm (strukturell), nicht "hat die I/O-Beispiele erfüllt"
-  wie im Notebook (`solved`-Spalte, funktional). Auf
-  `results_T2_gas10000_no_predictor` ergibt das nur 31/100 exakte Treffer
-  gegenüber 93/100 funktional gelösten Aufgaben — DeepCoder findet in den
-  meisten Fällen ein alternatives, aber ebenso korrektes Programm.
-- zusätzlich wird `partial_correctness` berechnet (gleich gewichteter
-  Durchschnitt der vier Ähnlichkeitsmetriken).
+- `exact_match`: **exakte Token-Gleichheit** von Referenz- und gefundenem
+  Programm (strukturell), nicht dasselbe wie `solved` (hat die I/O-Beispiele
+  erfüllt, funktional). Auf dem 5-Seed-Lauf ohne Training ergibt das nur
+  11/100 exakte Treffer gegenüber 53/100 funktional gelösten Aufgaben —
+  DeepCoder findet meistens ein alternatives, aber ebenso korrektes Programm.
+- `partial_correctness`: gleich gewichteter Durchschnitt der vier
+  Ähnlichkeitsmetriken.
+- `best_effort_operation_score`/`_position_score`/`_sequence_score`/`_edit_score`/`_partial_correctness`:
+  dieselben vier Metriken, aber für unsolved Aufgaben statt hart mit `0`
+  bewertet, gegen `best_partial_solution` bewertet, den besten während der
+  DFS-Suche gesehenen Kandidaten (siehe `deepcoder/search.py`), falls einer
+  existiert. `best_effort_program` ist dabei die Lösung, wenn gelöst, sonst
+  dieser Kandidat, sonst leer.
 
-## Ergebnisse (T=2 Testset, 100 Aufgaben)
+Vor dem Vergleich wird bei allen vier Metriken zusätzlich das führende
+Typsignatur-Präfix (`LIST`, `INT`, …) aus Referenz- und Kandidatenprogramm
+entfernt (`strip_type_markers`); da Referenz und Kandidat für eine Aufgabe
+immer denselben Typ-Präfix haben, trägt dieser sonst keine Information über
+die Suchqualität, sondern würde die Werte künstlich nach oben verzerren.
 
-| Konfiguration | gas | gelöst (funktional) | Ø nb_steps |
-|---|---|---|---|
-| ohne Training | 1000 | 53/100 (53%) | 628 |
-| mit Training | 1000 | 73/100 (73%) | 446 |
-| ohne Training | 10000 | 93/100 (93%) | 2398 |
-| mit Training | 10000 | 100/100 (100%) | 998 |
+## Multi-Seed-Lauf (der in der Arbeit zitierte Lauf)
 
-Bei gleichem Suchbudget (`gas`) verbessert das trainierte Netz sowohl die
-Trefferquote als auch die Effizienz der Suche deutlich (weniger
-`nb_steps` im Mittel). Ein größeres `gas`-Budget allein (ohne Training)
-verbessert ebenfalls die Trefferquote, ist aber kein Ersatz für den
-Prädiktor — mit Training + gas=10000 werden alle 100 Aufgaben gelöst, bei
-weniger als der Hälfte der durchschnittlichen Suchschritte.
+Die DFS-Baseline ohne Training ist deterministisch (kein Zufallsanteil), das
+trainierte Netz dagegen nicht: unterschiedliche Gewichtsinitialisierungen
+führen zu unterschiedlichen Solve-Raten. Für die Arbeit wird deshalb nicht
+ein einzelner Seed berichtet, sondern Mittelwert ± Standardabweichung über
+`SEED=0,1,2,3,4` bei `T=2`, `GAS=1000`, `EPOCHS=10`:
 
-Zusätzlich, aus `compute_metrics.py` (gas=10000):
+```bash
+cd /c/BA/deepcoder/deepcoder_pipeline
+for SEED in 0 1 2 3 4; do
+  T=2 GAS=1000 EPOCHS=10 SEED=$SEED ./run_all.sh
+done
+```
 
-| Konfiguration | exakte Programmübereinstimmung | partial_correctness (Ø) |
+Jeder Seed bekommt seinen eigenen Run-Ordner
+(`output/runs/T2_gas1000_epochs10_seed<N>/`), nichts wird überschrieben.
+Anschließend erzeugen die beiden Diagramm-Skripte die für die Arbeit
+verwendeten Diagramme direkt aus diesen fünf Run-Ordnern, mit der Kurzform
+der Metriken, die auch die Arbeit verwendet (BSS/POS/PPS/PSS/PES):
+
+```bash
+../.venv/Scripts/python.exe scripts/plot_multiseed.py
+../.venv/Scripts/python.exe scripts/plot_unsolved.py
+```
+
+`plot_multiseed.py` fasst die "mit Training"-Konfiguration zu einem
+Mittelwert-±-Std-Balken über die fünf Seeds zusammen. `plot_unsolved.py`
+macht dasselbe für die beiden Best-Effort-Diagramme (siehe unten), einmal
+über alle ungelösten Aufgaben und einmal beschränkt auf die, die tatsächlich
+einen gespeicherten Best-Effort-Kandidaten haben.
+
+## Ergebnisse (T=2 Testset, 100 Aufgaben, gas=1000, 5 Seeds)
+
+| Konfiguration | gelöst (funktional) | exakte Programmübereinstimmung |
 |---|---|---|
-| ohne Training | 31/100 (31%) | 0.6256 |
-| mit Training | 42/100 (42%) | 0.7225 |
+| ohne Training | 53/100 (53,0 %) | 11/100 (11,0 %) |
+| mit Training, Mittel ± Std | 67,8/100 (67,8 % ± 1,8 %) | 21,0 % ± 1,3 % |
 
+Einzelne Seeds mit Training lösen zwischen 66 und 70 der 100 Aufgaben.
 "Exakte Programmübereinstimmung" ist strenger als "gelöst" (Token-für-Token
-identisch zum Referenzprogramm statt nur funktional äquivalent) — der große
-Abstand zu den 93%/100% oben zeigt, dass DeepCoder meist ein alternatives,
-aber ebenso korrektes Programm findet statt exakt des Referenzprogramms.
+identisch zum Referenzprogramm statt nur funktional äquivalent) — der
+deutlich größere Abstand zu den 53 %/67,8 % oben zeigt, dass DeepCoder in
+den meisten gelösten Fällen ein alternatives, aber ebenso korrektes
+Programm findet statt exakt des Referenzprogramms.
+
+Die vier strukturellen Ähnlichkeitsmetriken aus `compute_metrics.py`, je über
+alle 100 Testaufgaben und über nur die gelösten:
+
+| Konfiguration | POS (alle / gelöst) | PPS (alle / gelöst) | PSS (alle / gelöst) | PES (alle / gelöst) |
+|---|---|---|---|---|
+| ohne Training | 0,180 / 0,340 | 0,145 / 0,274 | 0,180 / 0,340 | 0,145 / 0,274 |
+| mit Training, Mittel ± Std | 0,274±0,014 / 0,404±0,011 | 0,268±0,017 / 0,395±0,016 | 0,274±0,014 / 0,404±0,011 | 0,268±0,017 / 0,395±0,016 |
+
+POS und PSS sind hier identisch (ebenso PPS und PES): Bei den zweistufigen
+Referenzprogrammen dieses Datensatzes fällt bei DeepCoder jede Token-Menge,
+die der POS als gemeinsam zählt, auch als zusammenhängender Block auf, und
+jede exakte Positionsübereinstimmung kostet auch beim Editierabstand genau
+eine Ersetzung.
+
+### Best-Effort-Kandidaten (nur ungelöste Aufgaben)
+
+`best_effort_*` bewertet ungelöste Aufgaben gegen den besten während der
+DFS-Suche gesehenen Teilkandidaten statt sie pauschal mit `0` zu bewerten.
+Nicht jede ungelöste Aufgabe hat einen gespeicherten Kandidaten, deshalb
+zwei Sichten:
+
+| Konfiguration | POS über alle ungelösten | POS nur mit Kandidat | PPS/PES über alle ungelösten | PPS/PES nur mit Kandidat |
+|---|---|---|---|---|
+| ohne Training (47 ungelöst, 25 mit Kandidat) | 0,021 | 0,040 | ≈0,000 | ≈0,000 |
+| mit Training, Mittel ± Std (Ø 32 ungelöst, Ø 20 mit Kandidat) | 0,043±0,011 | 0,069±0,016 | 0,003±0,006 | 0,005±0,010 |
+
+Selbst ein gespeicherter Best-Effort-Kandidat, der speziell deshalb behalten
+wurde, weil er mehr der gegebenen Beispiele erfüllte als jeder andere von
+der Suche ausprobierte Kandidat, ist strukturell also kaum näher an der
+Referenz als eine ungelöste Aufgabe ohne jeden Kandidaten.
